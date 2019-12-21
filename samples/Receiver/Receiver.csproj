@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <DockerComposeProjectPath>..\docker-compose.dcproj</DockerComposeProjectPath>
+    <UserSecretsId>e7251a4a-616c-4cf4-a3cd-8244c2445c0e</UserSecretsId>
+    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Controllers\**" />
+    <Compile Remove="EventHandlers\**" />
+    <Content Remove="Controllers\**" />
+    <Content Remove="EventHandlers\**" />
+    <EmbeddedResource Remove="Controllers\**" />
+    <EmbeddedResource Remove="EventHandlers\**" />
+    <None Remove="Controllers\**" />
+    <None Remove="EventHandlers\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.9.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Merlion.Core.Microservices.EventBus\Merlion.Core.Microservices.EventBus.csproj" />
+  </ItemGroup>
+
+</Project>

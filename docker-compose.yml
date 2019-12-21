@@ -1,0 +1,15 @@
+version: '3.4'
+
+services:
+  receiver:
+    image: ${DOCKER_REGISTRY-}receiver
+    build:
+      context: .
+      dockerfile: Receiver/Dockerfile
+
+  sender:
+    image: ${DOCKER_REGISTRY-}sender
+    build:
+      context: .
+      dockerfile: Sender/Dockerfile
+

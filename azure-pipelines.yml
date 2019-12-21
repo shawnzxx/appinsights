@@ -1,0 +1,28 @@
+trigger:
+  branches:
+    include:
+    - master
+    - develop
+
+resources:
+  repositories:
+    - repository: templates
+      type: git
+      name: buildtools
+
+variables:
+  sonarQube: 'SonarMerlion'
+  projectKey: 'merlion-core-microservices-eventbus'
+
+stages:
+- template: .azure-pipelines-v2/templates/stages/nuget-build-3.yml@templates
+  parameters:
+    buildConfiguration: $(buildConfiguration)
+    buildProjects: $(buildProjects)
+    testProjects: $(testProjects)
+    vstsFeed: $(vstsFeed)
+    sonarQube: $(sonarQube)
+    projectKey: $(projectKey)
+    projectName: $(projectName)
+    nugetConfigPath: $(nugetConfigPath)
+    vmImage: $(vmImage)
