@@ -32,39 +32,31 @@ namespace Sender.Controllers
         }
 
         // GET: api/Sample
-        // https://medium.com/@tsuyoshiushio/correlation-with-activity-with-application-insights-1-overview-753a48a645fb
+        // Tutorail for distribute tracing https://medium.com/@tsuyoshiushio/correlation-with-activity-with-application-insights-1-overview-753a48a645fb
+        // Official guide for custom tracing https://docs.microsoft.com/en-sg/azure/azure-monitor/app/custom-operations-tracking
         [HttpGet]
         public async Task<IActionResult> SendSample()
         {
-            var requestTelemetry = new RequestTelemetry { Name = "AppInsights: HttpTrigger Request" };
-            var dependencyTelemetry = new DependencyTelemetry { Name = "AppInsights: Produce Kafka Message" };
+            _logger.LogInformation("Start With RequestTelemetry: Http Call");
+            var requestActivity = new Activity("RequestTelemetry: Http Call");
+            requestActivity.Start();
 
-            _logger.LogInformation("Start With HttpTrigger Request");
-
-            // Set telemetry ids using Activity
-            requestTelemetry.SetActivity(Activity.Current);
-
-            requestTelemetry.Start();
-            requestTelemetry.Stop();
-            _telemetryClient.TrackRequest(requestTelemetry);
+            var requestOperation = _telemetryClient.StartOperation<RequestTelemetry>(requestActivity);
+            _telemetryClient.StopOperation(requestOperation);
 
             // Start dependency call
-            var dependencyActivity = new Activity("AppInsights: Kafka Produce");
-            dependencyActivity.SetParentId(Activity.Current.Id);
+            var dependencyActivity = new Activity("DependencyTelemetry: Kafka Producer");
+            dependencyActivity.SetParentId(requestActivity.Id);
             dependencyActivity.Start();
 
-            dependencyTelemetry.SetActivity(dependencyActivity);
-            dependencyTelemetry.Start();
-
-            var sampleEvent = new SampleEvent("I am new sample");
-            var messageHeader = new KafkaMessageHeader(dependencyActivity.RootId, dependencyActivity.Id);
-            _logger.LogInformation("Produce Kafka event start");
-            await _publisher.ProduceAsync(new KafkaMessage(messageHeader, "myTopic", JsonSerializer.Serialize(sampleEvent)));
+            var dependencyOperation = _telemetryClient.StartOperation<DependencyTelemetry>(dependencyActivity);
             
+            var sampleEvent = new SampleEvent("I am sample payload");
+            var messageHeader = new KafkaMessageHeader(dependencyActivity.RootId, dependencyActivity.Id);
+            _logger.LogInformation("Start With DependencyTelemetry: Kafka Producer");
+            await _publisher.ProduceAsync(new KafkaMessage(messageHeader, "myTopic", JsonSerializer.Serialize(sampleEvent)));
 
-            dependencyTelemetry.Stop();
-            dependencyActivity.Stop();
-            _telemetryClient.TrackDependency(dependencyTelemetry);
+            _telemetryClient.StopOperation(dependencyOperation);
 
             return Ok();
         }

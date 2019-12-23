@@ -14,14 +14,11 @@ namespace Receiver.BackgroundServices.EventHandling
 {
     public class SampleEventHandler : IHostedService
     {
-        #region Private Attributes
         private readonly ILogger _logger;
         private readonly IConsumer _subscriber;
         private readonly IServiceProvider _serviceProvider;
         private readonly TelemetryClient _telemetryClient;
-        #endregion
 
-        #region Constructor
         public SampleEventHandler(
             ILogger<SampleEventHandler> logger, 
             IConsumer subscriber, 
@@ -33,9 +30,7 @@ namespace Receiver.BackgroundServices.EventHandling
             _serviceProvider = serviceProvider;
             _telemetryClient = telemetryClient;
         }
-        #endregion
 
-        #region StartAsync
         public Task StartAsync(CancellationToken cancellationToken)
         {
             _subscriber.OnMessageReceived += ReceivedMessageAsync;
@@ -49,9 +44,7 @@ namespace Receiver.BackgroundServices.EventHandling
 
             return Task.CompletedTask;
         }
-        #endregion
 
-        #region StopAsync
         public Task StopAsync(CancellationToken cancellationToken)
         {
             _logger.LogInformation($"{nameof(IHostedService.StopAsync)} Stop Subscriber.");
@@ -59,36 +52,27 @@ namespace Receiver.BackgroundServices.EventHandling
 
             return Task.CompletedTask;
         }
-        #endregion
 
-        #region ReceivedMessageAsync
-        private Task ReceivedMessageAsync(IIntegrationEvent message)
+        private async Task<Task> ReceivedMessageAsync(IIntegrationEvent message)
         {
-            var requestTelemetry = new RequestTelemetry { Name = "AppInsights: Kafka Consumer" };
-            _logger.LogInformation("Consume Kafka event start");
+            _logger.LogInformation("Start With RequestTelemetry: Kafka Consumer");
 
-            Activity requestActivity = new Activity("AppInsights: Kafka Consumer");
-            requestActivity.SetParentId(message.Header.OperationParentId);
+            var requestActivity = new Activity("RequestTelemetry: Kafka Consumer");
+            var parentId = message.Header.OperationParentId;
+            requestActivity.SetParentId(parentId);
             requestActivity.Start();
 
-            requestTelemetry.Id = Activity.Current.Id;
-            requestTelemetry.Context.Operation.Id = message.Header.OperationId;
-            requestTelemetry.Context.Operation.ParentId = message.Header.OperationParentId;
-
-            requestTelemetry.Start();
+            var requestOperation = _telemetryClient.StartOperation<RequestTelemetry>(requestActivity);
+            
             _logger.LogInformation($"Event ReceivedMessage => Topic: {message.TopicName}");
-
             var sampleEvent = JsonSerializer.Deserialize<SampleEvent>(message.Body);
-            _logger.LogInformation($"SampleEvent.Info", sampleEvent.Info);
+            _logger.LogInformation($"Event ReceivedMessage => Message: {sampleEvent}");
 
-            Task.Delay(1000);
+            await Task.Delay(1000);
 
-            requestActivity.Stop();
-            requestTelemetry.Stop();
-            _telemetryClient.TrackRequest(requestTelemetry);
+            _telemetryClient.StopOperation(requestOperation);
 
             return Task.CompletedTask;
         }
-        #endregion
     }
 }
