@@ -1,6 +1,7 @@
 using Merlion.Core.Microservices.EventBus;
 using Merlion.Core.Microservices.EventBus.Kafka;
 using Merlion.Core.Microservices.EventBus.Kafka.AppSettings;
+using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -21,6 +22,13 @@ namespace Sender
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddSingleton<ITelemetryInitializer>(new LoggingInitializer(Configuration["Logging:ApplicationInsights:RoleName"]));
+            // The following line enables Application Insights telemetry collection.
+            services.AddApplicationInsightsTelemetry(options => {
+                //disable the AppInsightsDebugLogger, set false to avoid the doubles in your logging in debug mode
+                options.EnableDebugLogger = false;
+            });
+
             services.AddControllers();
 
             services.AddSingleton<IProducer, KafkaProducer>();
